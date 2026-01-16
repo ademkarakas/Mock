@@ -375,9 +375,9 @@ const Layout: React.FC<LayoutProps> = ({
             </div>
 
             <NavLink page="courses" label={t("nav_courses")} />
-            <NavLink page="contact" label={t("nav_contact")} />
-            <NavLink page="volunteer" label={lang === "tr" ? "Gönüllü Ol" : "Freiwilliger"} />
             
+            <NavLink page="volunteer" label={lang === "tr" ? "Gönüllü Ol" : "Freiwilliger"} />
+            <NavLink page="contact" label={t("nav_contact")} />
             <div className="pt-6">
                <NavLink page="donate" label={t("nav_donate")} primary />
             </div>
@@ -388,8 +388,6 @@ const Layout: React.FC<LayoutProps> = ({
       {/* Main Content */}
       <main className="flex-grow">{children}</main>
 
-      {/* Main Content */}
-      <main className="flex-grow">{children}</main>
 
       {/* Scroll to Top Button */}
       <button
