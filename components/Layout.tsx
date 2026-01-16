@@ -35,20 +35,33 @@ const Layout: React.FC<LayoutProps> = ({
   const [isActivityDropdownOpen, setIsActivityDropdownOpen] = useState(false);
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const t = (key: string) => TEXTS[key][lang];
+
+  const circumference = 307.919;
+  const progress =
+    circumference * (1 - Math.min(Math.max(scrollProgress, 0), 100) / 100);
 
   // Sayfa kaydırma takibi
   useEffect(() => {
     const handleScroll = () => {
-      setShowScrollTop(window.scrollY > 400);
+      setShowScrollTop(globalThis.scrollY > 400);
+
+      // Scroll yüzdesini hesapla
+      const windowHeight =
+        document.documentElement.scrollHeight - globalThis.innerHeight;
+      const progress =
+        windowHeight > 0 ? (globalThis.scrollY / windowHeight) * 100 : 0;
+      setScrollProgress(progress);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    globalThis.addEventListener("scroll", handleScroll);
+    handleScroll(); // Başlangıçta çağır
+    return () => globalThis.removeEventListener("scroll", handleScroll);
   }, []);
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    globalThis.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const NavLink = ({
@@ -62,12 +75,18 @@ const Layout: React.FC<LayoutProps> = ({
   }) => (
     <button
       onClick={() => {
-        setPage(page);
+        if (page === "home") {
+          globalThis.location.hash = "";
+          // Hash change event'ini manuel tetikle
+          globalThis.dispatchEvent(new HashChangeEvent("hashchange"));
+        } else {
+          globalThis.location.hash = page;
+        }
         setIsMenuOpen(false);
       }}
       className={`relative px-3 py-1.5 transition-all duration-300 font-bold text-xs lg:text-sm whitespace-nowrap group ${
         primary
-          ? "bg-kpf-teal text-white rounded-full hover:bg-teal-700 shadow-lg transform hover:-translate-y-0.5 px-6 ml-2"
+          ? "bg-kpf-red text-white rounded-full hover:bg-red-700 shadow-lg transform hover:-translate-y-0.5 px-6 ml-2"
           : currentPage === page
           ? "text-kpf-teal"
           : "text-slate-600 hover:text-kpf-teal"
@@ -95,7 +114,11 @@ const Layout: React.FC<LayoutProps> = ({
             {/* Logo */}
             <div
               className="flex items-center space-x-3 cursor-pointer group"
-              onClick={() => setPage("home")}
+              onClick={() => {
+                globalThis.location.hash = "";
+                // Hash change event'ini manuel tetikle
+                globalThis.dispatchEvent(new HashChangeEvent("hashchange"));
+              }}
             >
               <img
                 src="/assets/cropped-Logoweb.png"
@@ -215,12 +238,31 @@ const Layout: React.FC<LayoutProps> = ({
               </div>
 
               <NavLink page="courses" label={t("nav_courses")} />
-              <NavLink page="contact" label={t("nav_contact")} />
               <NavLink
                 page="volunteer"
                 label={lang === "tr" ? "Gönüllü Ol" : "Freiwilliger"}
               />
-              <NavLink page="donate" label={t("nav_donate")} primary />
+              <NavLink page="contact" label={t("nav_contact")} />
+
+              <div className="mx-2"></div>
+              {/* Donate Button - Special styling */}
+              <div className="ml-3">
+                <button
+                  onClick={() => {
+                    globalThis.location.hash = "donate";
+                  }}
+                  className="relative overflow-hidden bg-gradient-to-r from-kpf-teal to-kpf-teal text-white px-5 py-2.5 rounded-full font-semibold text-sm shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 transform hover:-translate-y-0.5 transition-all group"
+                >
+                  <span className="relative z-10 flex items-center gap-2">
+                    <Heart
+                      size={16}
+                      className="group-hover:scale-110 transition-transform"
+                    />
+                    {t("nav_donate")}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-kpf-teal to-kpf-teal opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </button>
+              </div>
             </div>
 
             {/* Right Side - Language Selector */}
@@ -320,92 +362,255 @@ const Layout: React.FC<LayoutProps> = ({
               </button>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="text-slate-600 p-2"
+                className="text-slate-600 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                aria-label="Toggle menu"
+                aria-expanded={isMenuOpen}
               >
                 {isMenuOpen ? <X size={32} /> : <Menu size={32} />}
               </button>
             </div>
           </div>
+
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="lg:hidden border-t border-slate-200 bg-white">
+              <div className="flex flex-col space-y-2 px-4 py-4">
+                <button
+                  onClick={() => {
+                    setPage("home");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-left px-4 py-3 rounded-lg transition-colors font-semibold ${
+                    currentPage === "home"
+                      ? "bg-kpf-teal/10 text-kpf-teal"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {t("nav_home")}
+                </button>
+
+                {/* About Section */}
+                <div>
+                  <button
+                    onClick={() => setIsAboutDropdownOpen(!isAboutDropdownOpen)}
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors font-semibold flex items-center justify-between ${
+                      ["about", "satzung", "guelen"].includes(currentPage)
+                        ? "bg-kpf-teal/10 text-kpf-teal"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {t("nav_about")}
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform ${
+                        isAboutDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  {isAboutDropdownOpen && (
+                    <div className="pl-4 space-y-2 mt-2">
+                      <button
+                        onClick={() => {
+                          setPage("about");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-slate-600 hover:text-kpf-teal hover:bg-slate-50 rounded transition-colors"
+                      >
+                        {lang === "tr" ? "Hakkımızda" : "Über uns"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPage("satzung");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-slate-600 hover:text-kpf-teal hover:bg-slate-50 rounded transition-colors"
+                      >
+                        {lang === "tr" ? "Tüzük" : "Satzung"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPage("guelen");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-slate-600 hover:text-kpf-teal hover:bg-slate-50 rounded transition-colors"
+                      >
+                        {lang === "tr" ? "Gülen Hareketi" : "Über die Bewegung"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Activities Section */}
+                <div>
+                  <button
+                    onClick={() =>
+                      setIsActivityDropdownOpen(!isActivityDropdownOpen)
+                    }
+                    className={`w-full text-left px-4 py-3 rounded-lg transition-colors font-semibold flex items-center justify-between ${
+                      ["activities", "teegespraeche"].includes(currentPage)
+                        ? "bg-kpf-teal/10 text-kpf-teal"
+                        : "text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {t("nav_activities")}
+                    <ChevronDown
+                      size={16}
+                      className={`transition-transform ${
+                        isActivityDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                  {isActivityDropdownOpen && (
+                    <div className="pl-4 space-y-2 mt-2">
+                      <button
+                        onClick={() => {
+                          setPage("activities");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-slate-600 hover:text-kpf-teal hover:bg-slate-50 rounded transition-colors"
+                      >
+                        {t("nav_activities_all")}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPage("teegespraeche");
+                          setIsMenuOpen(false);
+                        }}
+                        className="block w-full text-left px-4 py-2 text-slate-600 hover:text-kpf-teal hover:bg-slate-50 rounded transition-colors"
+                      >
+                        {t("nav_teegespraeche")}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => {
+                    setPage("courses");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-left px-4 py-3 rounded-lg transition-colors font-semibold ${
+                    currentPage === "courses"
+                      ? "bg-kpf-teal/10 text-kpf-teal"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {t("nav_courses")}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setPage("volunteer");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-left px-4 py-3 rounded-lg transition-colors font-semibold ${
+                    currentPage === "volunteer"
+                      ? "bg-kpf-teal/10 text-kpf-teal"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {lang === "tr" ? "Gönüllü Ol" : "Freiwilliger"}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setPage("contact");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-left px-4 py-3 rounded-lg transition-colors font-semibold ${
+                    currentPage === "contact"
+                      ? "bg-kpf-teal/10 text-kpf-teal"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {t("nav_contact")}
+                </button>
+
+                <div className="my-2 border-t border-slate-200"></div>
+
+                <button
+                  onClick={() => {
+                    setPage("donate");
+                    setIsMenuOpen(false);
+                  }}
+                  className={`text-left px-6 py-3 rounded-full font-semibold transition-all ${
+                    currentPage === "donate"
+                      ? "bg-kpf-teal text-white"
+                      : "bg-kpf-teal text-white hover:bg-teal-700"
+                  }`}
+                >
+                  {t("nav_donate")}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
-      
-
-      {/* --- MOBİL MENÜ ARAYÜZÜ --- */}
-      <div
-        className={`fixed inset-0 z-[60] lg:hidden transition-all duration-500 ${
-          isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-      >
-        {/* Arka Plan Karartma */}
-        <div 
-          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-          onClick={() => setIsMenuOpen(false)}
-        />
-        
-        {/* Menü İçeriği */}
-        <div
-          className={`absolute right-0 top-0 h-full w-[80%] max-w-sm bg-white shadow-2xl transition-transform duration-500 ease-out p-8 ${
-            isMenuOpen ? "translate-x-0" : "translate-x-full"
-          }`}
-        >
-          <div className="flex flex-col space-y-6 mt-12">
-            <NavLink page="home" label={t("nav_home")} />
-            
-            {/* About Bölümü (Mobil) */}
-            <div className="space-y-3">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-3">
-                {t("nav_about")}
-              </p>
-              <div className="flex flex-col space-y-1 ml-4 border-l-2 border-slate-100">
-                <button onClick={() => {setPage("about"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{lang === "tr" ? "Hakkımızda" : "Über uns"}</button>
-                <button onClick={() => {setPage("satzung"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{lang === "tr" ? "Tüzük" : "Satzung"}</button>
-                <button onClick={() => {setPage("guelen"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{lang === "tr" ? "Hizmet" : "Über die Bewegung"}</button>
-              </div>
-            </div>
-
-            {/* Activities Bölümü (Mobil) */}
-            <div className="space-y-3">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-3">
-                {t("nav_activities")}
-              </p>
-              <div className="flex flex-col space-y-1 ml-4 border-l-2 border-slate-100">
-                <button onClick={() => {setPage("activities"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{t("nav_activities_all")}</button>
-                <button onClick={() => {setPage("teegespraeche"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{t("nav_teegespraeche")}</button>
-              </div>
-            </div>
-
-            <NavLink page="courses" label={t("nav_courses")} />
-            
-            <NavLink page="volunteer" label={lang === "tr" ? "Gönüllü Ol" : "Freiwilliger"} />
-            <NavLink page="contact" label={t("nav_contact")} />
-            <div className="pt-6">
-               <NavLink page="donate" label={t("nav_donate")} primary />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <main className="flex-grow">{children}</main>
 
-
       {/* Scroll to Top Button */}
       <button
         onClick={scrollToTop}
-        className={`fixed bottom-8 right-8 z-40 p-3 bg-gradient-to-r from-kpf-red to-orange-500 text-white rounded-full shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center group ${
+        className={`scroll-top fixed bottom-8 right-8 z-40 flex items-center justify-center transition-all duration-300 ${
           showScrollTop
             ? "opacity-100 translate-y-0 pointer-events-auto"
             : "opacity-0 translate-y-10 pointer-events-none"
         }`}
         aria-label="Scroll to top"
+        style={{ width: "64px", height: "64px" }}
       >
-        <ChevronUp
-          size={24}
-          className="group-hover:-translate-y-1 transition-transform"
-        />
-        <span className="absolute right-full mr-4 bg-white text-slate-800 px-3 py-1.5 rounded-lg text-sm font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-          {lang === "tr" ? "Yukarı Çık" : "Nach oben"}
-        </span>
+        {/* Progress Circle */}
+        <svg
+          className="progress-circle svg-content absolute inset-0 pointer-events-none"
+          width="100%"
+          height="100%"
+          viewBox="-1 -1 102 102"
+          style={{ transform: "rotate(-90deg)" }}
+        >
+          <defs>
+            <linearGradient
+              id="scrollGradient"
+              x1="0%"
+              y1="0%"
+              x2="100%"
+              y2="100%"
+            >
+              <stop offset="0%" stopColor="#6944ef" /> {/* red-500 */}
+              <stop offset="100%" stopColor="#7db3e6" /> {/* amber-500 */}
+            </linearGradient>
+          </defs>
+
+          {/* Background Circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r="49"
+            fill="none"
+            stroke="rgba(255,255,255,0.15)"
+            strokeWidth="3"
+          />
+
+          {/* Progress Path */}
+          <path
+            d="M50,1 a49,49 0 0,1 0,98 a49,49 0 0,1 0,-98"
+            fill="none"
+            stroke="url(#scrollGradient)"
+            strokeWidth="3"
+            strokeDasharray={circumference}
+            strokeDashoffset={progress}
+            strokeLinecap="round"
+            style={{
+              transition: "stroke-dashoffset 0.15s linear",
+            }}
+          />
+        </svg>
+
+        {/* Center Button */}
+        <div className="absolute inset-2 flex items-center justify-center rounded-full bg-gradient-to-br from-teal-700 to-teal-700 shadow-xl">
+          <ChevronUp size={24} className="text-white transition-transform" />
+        </div>
       </button>
 
       {/* Footer */}
@@ -551,7 +756,7 @@ const Layout: React.FC<LayoutProps> = ({
                   setPage("volunteer");
                   scrollToTop();
                 }}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-kpf-red to-orange-500 text-white px-4 py-2 rounded-full font-semibold hover:shadow-lg hover:-translate-y-1 transition-all"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-kpf-teal to-teal-700 text-white px-4 py-2 rounded-full font-semibold hover:shadow-lg hover:-translate-y-1 transition-all"
               >
                 <Heart size={18} />
                 {lang === "tr" ? "Gönüllü Ol" : "Freiwilliger werden"}
