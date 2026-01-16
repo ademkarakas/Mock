@@ -328,6 +328,65 @@ const Layout: React.FC<LayoutProps> = ({
           </div>
         </div>
       </nav>
+      
+
+      {/* --- MOBİL MENÜ ARAYÜZÜ --- */}
+      <div
+        className={`fixed inset-0 z-[60] lg:hidden transition-all duration-500 ${
+          isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+      >
+        {/* Arka Plan Karartma */}
+        <div 
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          onClick={() => setIsMenuOpen(false)}
+        />
+        
+        {/* Menü İçeriği */}
+        <div
+          className={`absolute right-0 top-0 h-full w-[80%] max-w-sm bg-white shadow-2xl transition-transform duration-500 ease-out p-8 ${
+            isMenuOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+        >
+          <div className="flex flex-col space-y-6 mt-12">
+            <NavLink page="home" label={t("nav_home")} />
+            
+            {/* About Bölümü (Mobil) */}
+            <div className="space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-3">
+                {t("nav_about")}
+              </p>
+              <div className="flex flex-col space-y-1 ml-4 border-l-2 border-slate-100">
+                <button onClick={() => {setPage("about"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{lang === "tr" ? "Hakkımızda" : "Über uns"}</button>
+                <button onClick={() => {setPage("satzung"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{lang === "tr" ? "Tüzük" : "Satzung"}</button>
+                <button onClick={() => {setPage("guelen"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{lang === "tr" ? "Hizmet" : "Über die Bewegung"}</button>
+              </div>
+            </div>
+
+            {/* Activities Bölümü (Mobil) */}
+            <div className="space-y-3">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-3">
+                {t("nav_activities")}
+              </p>
+              <div className="flex flex-col space-y-1 ml-4 border-l-2 border-slate-100">
+                <button onClick={() => {setPage("activities"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{t("nav_activities_all")}</button>
+                <button onClick={() => {setPage("teegespraeche"); setIsMenuOpen(false)}} className="text-left px-4 py-2 text-slate-600 font-bold">{t("nav_teegespraeche")}</button>
+              </div>
+            </div>
+
+            <NavLink page="courses" label={t("nav_courses")} />
+            <NavLink page="contact" label={t("nav_contact")} />
+            <NavLink page="volunteer" label={lang === "tr" ? "Gönüllü Ol" : "Freiwilliger"} />
+            
+            <div className="pt-6">
+               <NavLink page="donate" label={t("nav_donate")} primary />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="flex-grow">{children}</main>
 
       {/* Main Content */}
       <main className="flex-grow">{children}</main>
